@@ -18,13 +18,39 @@ class ExpressionVisitor : LunarBaseVisitor<Expression>() {
             else -> TODO()
         }
     }
+
+    override fun visitColumn_name(ctx: LunarParser.Column_nameContext?): Expression {
+        return Column(StringVisitor().visit(ctx!!.any_name()))
+    }
 }
 
 class QueryVisitor : LunarBaseVisitor<Query>() {
     override fun visitParse(ctx: LunarParser.ParseContext?): Query {
         val firstSqlStatement = ctx!!.sql_stmt_list(0)
         val expression = ExpressionVisitor().visit(firstSqlStatement)
+        val table = TableVisitor().visit(firstSqlStatement)
 
-        return Query(expression, null)
+        return Query(expression, table)
+    }
+}
+
+class TableVisitor : LunarBaseVisitor<String?>() {
+    override fun visitSelect_core(ctx: LunarParser.Select_coreContext?): String? {
+        if (ctx!!.table_or_subquery().isEmpty()) {
+            return null
+        }
+        else {
+            return visit(ctx.table_or_subquery(0))
+        }
+    }
+
+    override fun visitTable_or_subquery(ctx: LunarParser.Table_or_subqueryContext?): String {
+        return StringVisitor().visit(ctx!!.table_name())
+    }
+}
+
+class StringVisitor : LunarBaseVisitor<String>() {
+    override fun visitAny_name(ctx: LunarParser.Any_nameContext?): String {
+        return ctx!!.IDENTIFIER().text
     }
 }
